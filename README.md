@@ -1,5 +1,41 @@
-# Vue 3 + Vite
+# SP2-Frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+SpireInsight frontend MVP built with Vue 3 and Vite.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Frontend Data Mode
+
+The frontend currently supports two data modes through Vite environment variables.
+
+### Local Mode
+
+Local mode is the default. It reads insights from:
+
+```text
+/data/run_insights.json
+```
+
+Use this mode for local development, static previews, and the current MVP.
+
+### Remote Mode
+
+Remote mode fetches insights from `VITE_INSIGHTS_API_URL`. If the remote request fails, the app automatically falls back to the local JSON file.
+
+No real API URL is hardcoded in the app.
+
+### Environment Setup
+
+Copy `.env.example` to `.env` and adjust values as needed:
+
+```text
+VITE_INSIGHTS_API_MODE=local
+VITE_INSIGHTS_API_URL=
+```
+
+For remote mode:
+
+```text
+VITE_INSIGHTS_API_MODE=remote
+VITE_INSIGHTS_API_URL=https://your-api.example.com/insights
+```
+
+If `VITE_INSIGHTS_API_MODE` is not `remote`, the frontend uses local mode.

@@ -1,6 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import insightArt from '../assets/insight-stack.png'
+import { analyzeRun as requestRunAnalysis } from '../services/insightsApi'
+
+const ANALYSIS_DELAY_MS = 260
 
 const characters = [
   { value: 'ironclad', label: 'The Ironclad' },
@@ -23,78 +26,58 @@ const problems = [
   { value: 'draw', label: 'Bad Card Draw' },
 ]
 
-const fallbackResult = {
-  id: 'fallback',
-  title: 'Your deck missed a core checkpoint.',
-  likelyCause: 'The run was short on one key axis for the fight you reached.',
-  whatWentWrong: 'Your deck likely solved some hallway fights, but it did not convert that strength into a reliable plan for the next pressure spike.',
-  fixNextRun: 'Take cards and relics that solve the upcoming Act instead of only improving the current floor.',
-  priorityUpgrade: 'Add one consistent source of damage, block, scaling, or draw before the next elite path.',
-  confidence: 72,
-  metrics: [
-    { label: 'Damage', value: 58, target: 70 },
-    { label: 'Block', value: 54, target: 70 },
-    { label: 'Scaling', value: 48, target: 70 },
-    { label: 'Draw', value: 52, target: 70 },
-  ],
-}
-
 const selectedCharacter = ref('')
 const selectedLocation = ref('')
 const selectedProblem = ref('')
 const result = ref(null)
-const insights = ref({ entries: [] })
 const isAnalyzing = ref(false)
 
+const selectedRun = computed(() => ({
+  character: selectedCharacter.value,
+  location: selectedLocation.value,
+  problem: selectedProblem.value,
+}))
+
 const canAnalyze = computed(() => (
-  selectedCharacter.value &&
-  selectedLocation.value &&
-  selectedProblem.value
+  Boolean(
+    selectedRun.value.character &&
+    selectedRun.value.location &&
+    selectedRun.value.problem
+  )
 ))
 
-const runLabel = computed(() => {
-  const character = characters.find((item) => item.value === selectedCharacter.value)?.label
-  const location = locations.find((item) => item.value === selectedLocation.value)?.label
-  const problem = problems.find((item) => item.value === selectedProblem.value)?.label
+const runLabel = computed(() => [
+  findOptionLabel(characters, selectedRun.value.character),
+  findOptionLabel(locations, selectedRun.value.location),
+  findOptionLabel(problems, selectedRun.value.problem),
+].filter(Boolean).join(' / '))
 
-  return [character, location, problem].filter(Boolean).join(' / ')
-})
+function findOptionLabel(options, value) {
+  return options.find((item) => item.value === value)?.label
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
 function metricWidth(value) {
   return `${Math.max(0, Math.min(value, 100))}%`
 }
 
-function findInsight() {
-  const entries = insights.value.entries || []
-  const exact = entries.find((entry) => (
-    entry.character === selectedCharacter.value &&
-    entry.location === selectedLocation.value &&
-    entry.problem === selectedProblem.value
-  ))
-  const byProblem = entries.find((entry) => entry.problem === selectedProblem.value)
-  const defaultEntry = entries.find((entry) => entry.id === 'default')
-
-  return exact || byProblem || defaultEntry || fallbackResult
-}
-
-function analyzeRun() {
+async function analyzeRun() {
   if (!canAnalyze.value) return
 
   isAnalyzing.value = true
-  window.setTimeout(() => {
-    result.value = findInsight()
-    isAnalyzing.value = false
-  }, 260)
-}
+  await wait(ANALYSIS_DELAY_MS)
 
-onMounted(async () => {
   try {
-    const response = await fetch('/data/run_insights.json')
-    insights.value = await response.json()
-  } catch {
-    insights.value = { entries: [fallbackResult] }
+    result.value = await requestRunAnalysis(selectedRun.value)
+  } finally {
+    isAnalyzing.value = false
   }
-})
+}
 </script>
 
 <template>
